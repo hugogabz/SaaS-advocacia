@@ -8,13 +8,12 @@ type ClientFormFieldsProps = {
     name: string;
     birthDate: Date | null;
     address: string | null;
-    email: string | null;
     phone: string | null;
     document: string | null;
     cpf: string | null;
     benefitType: string | null;
     benefitStatus: string | null;
-    govPassword: string | null;
+    senhaGov: string | null;
     notes: string | null;
   };
   errors?: Record<string, string[] | undefined>;
@@ -31,8 +30,8 @@ export function ClientFormFields({
   const phoneId = `${idPrefix}-phone`;
   const benefitTypeId = `${idPrefix}-benefit-type`;
   const benefitStatusId = `${idPrefix}-benefit-status`;
-  const cpfId = `${idPrefix}-cpf`;
-  const govPasswordId = `${idPrefix}-gov-password`;
+  const documentId = `${idPrefix}-document`;
+  const senhaGovId = `${idPrefix}-senha-gov`;
   const notesId = `${idPrefix}-notes`;
 
   const birthDateValue = defaultValues?.birthDate
@@ -120,28 +119,28 @@ export function ClientFormFields({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={cpfId}>CPF</Label>
+          <Label htmlFor={documentId}>CPF/documento</Label>
           <Input
-            id={cpfId}
-            name="cpf"
-            defaultValue={defaultValues?.cpf ?? ""}
+            id={documentId}
+            name="document"
+            defaultValue={defaultValues?.document ?? defaultValues?.cpf ?? ""}
             placeholder="000.000.000-00"
           />
-          {errors?.cpf ? (
-            <p className="text-sm text-destructive">{errors.cpf[0]}</p>
+          {errors?.document ? (
+            <p className="text-sm text-destructive">{errors.document[0]}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor={govPasswordId}>Senha Gov.br</Label>
+          <Label htmlFor={senhaGovId}>Senha Gov.br</Label>
           <Input
-            id={govPasswordId}
-            name="govPassword"
-            type="password"
-            defaultValue={defaultValues?.govPassword ?? ""}
+            id={senhaGovId}
+            name="senhaGov"
+            type="text"
+            defaultValue={defaultValues?.senhaGov ?? ""}
             placeholder="Senha de acesso Gov.br"
           />
-          {errors?.govPassword ? (
-            <p className="text-sm text-destructive">{errors.govPassword[0]}</p>
+          {errors?.senhaGov ? (
+            <p className="text-sm text-destructive">{errors.senhaGov[0]}</p>
           ) : null}
         </div>
       </div>
@@ -157,12 +156,6 @@ export function ClientFormFields({
           <p className="text-sm text-destructive">{errors.notes[0]}</p>
         ) : null}
       </div>
-      <input type="hidden" name="email" defaultValue={defaultValues?.email ?? ""} />
-      <input
-        type="hidden"
-        name="document"
-        defaultValue={defaultValues?.document ?? ""}
-      />
     </div>
   );
 }

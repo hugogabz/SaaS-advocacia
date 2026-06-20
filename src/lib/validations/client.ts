@@ -1,22 +1,24 @@
 import { z } from "zod";
 
 const optionalText = z
-  .string()
-  .trim()
-  .transform((value) => (value.length > 0 ? value : null))
+  .preprocess(
+    (value) => (typeof value === "string" ? value : ""),
+    z.string().trim().transform((value) => (value.length > 0 ? value : null)),
+  )
   .nullable();
 
 const optionalDate = z
-  .string()
-  .trim()
-  .transform((value) => {
-    if (!value) {
-      return null;
-    }
+  .preprocess(
+    (value) => (typeof value === "string" ? value : ""),
+    z.string().trim().transform((value) => {
+      if (!value) {
+        return null;
+      }
 
-    const date = new Date(`${value}T12:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  })
+      const date = new Date(`${value}T12:00:00`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }),
+  )
   .nullable();
 
 export const clientSchema = z.object({
@@ -27,9 +29,7 @@ export const clientSchema = z.object({
   benefitType: optionalText,
   benefitStatus: optionalText,
   notes: optionalText,
-  cpf: optionalText,
-  govPassword: optionalText,
-  email: optionalText,
+  senhaGov: optionalText,
   document: optionalText,
 });
 

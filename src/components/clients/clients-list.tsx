@@ -2,6 +2,7 @@
 
 import type { Client } from "@prisma/client";
 import { Calendar, Edit, KeyRound, MapPin, Phone, Search, UserRound } from "lucide-react";
+import { CopySenhaGovButton } from "@/components/clients/copy-senha-gov-button";
 import { DeleteClientButton } from "@/components/clients/delete-client-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +72,7 @@ export function ClientsList({ clients, query, onEdit }: ClientsListProps) {
                     {birthDate}
                   </span>
                 ) : null}
-                {client.cpf ? <span>CPF: {client.cpf}</span> : null}
+                {client.document ? <span>CPF/documento: {client.document}</span> : null}
                 {client.benefitType ? (
                   <span>Beneficio: {client.benefitType}</span>
                 ) : null}
@@ -96,11 +97,14 @@ export function ClientsList({ clients, query, onEdit }: ClientsListProps) {
                   {client.address}
                 </span>
               ) : null}
-              {client.govPassword ? (
-                <span className="flex items-center gap-1.5">
-                  <KeyRound className="h-4 w-4" aria-hidden="true" />
-                  Senha Gov.br cadastrada
-                </span>
+              {client.senhaGov ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-foreground">
+                    <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Senha Gov.br: {client.senhaGov}
+                  </span>
+                  <CopySenhaGovButton senhaGov={client.senhaGov} />
+                </div>
               ) : null}
             </div>
             {client.notes ? (

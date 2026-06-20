@@ -11,10 +11,17 @@ export type CaseActionState = {
   errors?: Record<string, string[] | undefined>;
 };
 
-const defaultError = {
-  ok: false,
-  message: "Nao foi possivel salvar o processo.",
-} satisfies CaseActionState;
+function caseActionError(action: string, error: unknown): CaseActionState {
+  console.error(`[cases:${action}]`, error);
+
+  return {
+    ok: false,
+    message:
+      error instanceof Error
+        ? `Nao foi possivel salvar o processo: ${error.message}`
+        : "Nao foi possivel salvar o processo. Veja o console do servidor.",
+  };
+}
 
 async function getCurrentOfficeId() {
   const session = await auth();
@@ -34,8 +41,22 @@ function parseCaseForm(formData: FormData) {
     court: formData.get("court"),
     status: formData.get("status"),
     clientId: formData.get("clientId"),
-    description: formData.get("description"),
+    nextDeadline: formData.get("nextDeadline"),
+    notes: formData.get("notes"),
   });
+}
+
+function toCaseData(data: ReturnType<typeof caseSchema.parse>) {
+  return {
+    clientId: data.clientId,
+    title: data.title,
+    number: data.caseNumber,
+    type: data.type,
+    court: data.court,
+    status: data.status,
+    nextDeadlineAt: data.nextDeadline,
+    description: data.notes,
+  };
 }
 
 async function clientBelongsToOffice(clientId: string, officeId: string) {
@@ -78,13 +99,7 @@ export async function createCaseAction(
     await getPrisma().case.create({
       data: {
         officeId,
-        clientId: parsed.data.clientId,
-        title: parsed.data.title,
-        number: parsed.data.caseNumber,
-        type: parsed.data.type,
-        court: parsed.data.court,
-        status: parsed.data.status,
-        description: parsed.data.description,
+        ...toCaseData(parsed.data),
       },
     });
 
@@ -94,9 +109,22 @@ export async function createCaseAction(
       ok: true,
       message: "Processo criado com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return caseActionError("create", error);
   }
+}
+
+export async function saveCaseAction(
+  _prevState: CaseActionState,
+  formData: FormData,
+): Promise<CaseActionState> {
+  const caseId = formData.get("caseId")?.toString();
+
+  if (caseId) {
+    return updateCaseAction(caseId, _prevState, formData);
+  }
+
+  return createCaseAction(_prevState, formData);
 }
 
 export async function updateCaseAction(
@@ -128,15 +156,7 @@ export async function updateCaseAction(
         id: caseId,
         officeId,
       },
-      data: {
-        clientId: parsed.data.clientId,
-        title: parsed.data.title,
-        number: parsed.data.caseNumber,
-        type: parsed.data.type,
-        court: parsed.data.court,
-        status: parsed.data.status,
-        description: parsed.data.description,
-      },
+      data: toCaseData(parsed.data),
     });
 
     if (result.count === 0) {
@@ -152,8 +172,8 @@ export async function updateCaseAction(
       ok: true,
       message: "Processo atualizado com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return caseActionError("update", error);
   }
 }
 

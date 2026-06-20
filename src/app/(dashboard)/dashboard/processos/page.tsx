@@ -1,17 +1,9 @@
 import { redirect } from "next/navigation";
-import { BriefcaseBusiness, Plus, Search } from "lucide-react";
+import { BriefcaseBusiness, Search } from "lucide-react";
 import { auth } from "@/auth";
 import { getCaseStatusFromQuery } from "@/components/cases/case-status";
-import { CasesList } from "@/components/cases/cases-list";
-import { CreateCaseForm } from "@/components/cases/create-case-form";
+import { CaseManager } from "@/components/cases/case-manager";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getPrisma } from "@/lib/prisma";
 import { caseSearchSchema } from "@/lib/validations/case";
@@ -105,22 +97,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         </form>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5 text-primary" aria-hidden="true" />
-            Novo processo
-          </CardTitle>
-          <CardDescription>
-            Vincule o processo a um cliente ja cadastrado no escritorio.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateCaseForm clients={clients} />
-        </CardContent>
-      </Card>
-
-      <CasesList cases={cases} clients={clients} query={query} />
+      <CaseManager cases={cases} clients={clients} query={query} />
     </div>
   );
 }

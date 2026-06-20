@@ -103,7 +103,7 @@ model Client {
   cpf       String?
   benefitType String?
   benefitStatus String?
-  govPassword String?
+  senhaGov String?
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

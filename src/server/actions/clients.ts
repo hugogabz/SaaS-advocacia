@@ -11,10 +11,17 @@ export type ClientActionState = {
   errors?: Record<string, string[] | undefined>;
 };
 
-const defaultError = {
-  ok: false,
-  message: "Nao foi possivel salvar o cliente.",
-} satisfies ClientActionState;
+function clientActionError(action: string, error: unknown): ClientActionState {
+  console.error(`[clients:${action}]`, error);
+
+  return {
+    ok: false,
+    message:
+      error instanceof Error
+        ? `Nao foi possivel salvar o cliente: ${error.message}`
+        : "Nao foi possivel salvar o cliente. Veja o console do servidor.",
+  };
+}
 
 async function getCurrentOfficeId() {
   const session = await auth();
@@ -35,11 +42,23 @@ function parseClientForm(formData: FormData) {
     benefitType: formData.get("benefitType"),
     benefitStatus: formData.get("benefitStatus"),
     notes: formData.get("notes"),
-    cpf: formData.get("cpf"),
-    govPassword: formData.get("govPassword"),
-    email: formData.get("email"),
+    senhaGov: formData.get("senhaGov"),
     document: formData.get("document"),
   });
+}
+
+function toClientData(data: ReturnType<typeof clientSchema.parse>) {
+  return {
+    name: data.name,
+    birthDate: data.birthDate,
+    address: data.address,
+    phone: data.phone,
+    benefitType: data.benefitType,
+    benefitStatus: data.benefitStatus,
+    notes: data.notes,
+    document: data.document,
+    senhaGov: data.senhaGov,
+  };
 }
 
 export async function createClientAction(
@@ -61,7 +80,7 @@ export async function createClientAction(
     await getPrisma().client.create({
       data: {
         officeId,
-        ...parsed.data,
+        ...toClientData(parsed.data),
       },
     });
 
@@ -71,8 +90,8 @@ export async function createClientAction(
       ok: true,
       message: "Cliente criado com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return clientActionError("create", error);
   }
 }
 
@@ -111,7 +130,7 @@ export async function updateClientAction(
         id: clientId,
         officeId,
       },
-      data: parsed.data,
+      data: toClientData(parsed.data),
     });
 
     if (result.count === 0) {
@@ -127,8 +146,8 @@ export async function updateClientAction(
       ok: true,
       message: "Cliente atualizado com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return clientActionError("update", error);
   }
 }
 

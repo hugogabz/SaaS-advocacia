@@ -1,18 +1,19 @@
 "use client";
 
+import type { Case, Client } from "@prisma/client";
 import { useActionState, useEffect, useRef } from "react";
 import { CaseFormFields } from "@/components/cases/case-form-fields";
 import { SubmitButton } from "@/components/cases/submit-button";
 import {
-  createCaseAction,
+  saveCaseAction,
   type CaseActionState,
 } from "@/server/actions/cases";
+import { Button } from "@/components/ui/button";
 
 type CreateCaseFormProps = {
-  clients: Array<{
-    id: string;
-    name: string;
-  }>;
+  clients: Pick<Client, "id" | "name">[];
+  editingCase: Case | null;
+  onCancelEdit: () => void;
 };
 
 const initialState: CaseActionState = {
@@ -20,21 +21,30 @@ const initialState: CaseActionState = {
   message: "",
 };
 
-export function CreateCaseForm({ clients }: CreateCaseFormProps) {
+export function CreateCaseForm({
+  clients,
+  editingCase,
+  onCancelEdit,
+}: CreateCaseFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useActionState(createCaseAction, initialState);
+  const [state, formAction] = useActionState(saveCaseAction, initialState);
+  const isEditing = Boolean(editingCase);
+  const formKey = editingCase?.id ?? "create-case";
 
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
+      onCancelEdit();
     }
-  }, [state.ok]);
+  }, [onCancelEdit, state.ok]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form key={formKey} ref={formRef} action={formAction} className="space-y-4">
+      <input type="hidden" name="caseId" value={editingCase?.id ?? ""} />
       <CaseFormFields
-        idPrefix="create-case"
+        idPrefix={isEditing ? `edit-case-${editingCase?.id}` : "create-case"}
         clients={clients}
+        defaultValues={editingCase ?? undefined}
         errors={state.errors}
       />
       {state.message ? (
@@ -46,7 +56,21 @@ export function CreateCaseForm({ clients }: CreateCaseFormProps) {
           {state.message}
         </p>
       ) : null}
-      <SubmitButton className="w-full sm:w-auto">Criar processo</SubmitButton>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <SubmitButton className="w-full sm:w-auto">
+          {isEditing ? "Salvar alteracoes" : "Adicionar"}
+        </SubmitButton>
+        {isEditing ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={onCancelEdit}
+          >
+            Cancelar edicao
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { Trash2 } from "lucide-react";
 import { SubmitButton } from "@/components/cases/submit-button";
 import { deleteCaseAction } from "@/server/actions/cases";

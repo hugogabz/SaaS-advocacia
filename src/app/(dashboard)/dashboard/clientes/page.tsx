@@ -30,12 +30,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         ? {
             OR: [
               { name: { contains: query, mode: "insensitive" } },
-              { email: { contains: query, mode: "insensitive" } },
               { phone: { contains: query, mode: "insensitive" } },
               { document: { contains: query, mode: "insensitive" } },
-              { cpf: { contains: query, mode: "insensitive" } },
               { benefitType: { contains: query, mode: "insensitive" } },
               { benefitStatus: { contains: query, mode: "insensitive" } },
+              { senhaGov: { contains: query, mode: "insensitive" } },
             ],
           }
         : {}),

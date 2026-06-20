@@ -2,9 +2,24 @@ import { CaseStatus } from "@prisma/client";
 import { z } from "zod";
 
 const optionalText = z
-  .string()
-  .trim()
-  .transform((value) => (value.length > 0 ? value : null))
+  .preprocess(
+    (value) => (typeof value === "string" ? value : ""),
+    z.string().trim().transform((value) => (value.length > 0 ? value : null)),
+  )
+  .nullable();
+
+const optionalDate = z
+  .preprocess(
+    (value) => (typeof value === "string" ? value : ""),
+    z.string().trim().transform((value) => {
+      if (!value) {
+        return null;
+      }
+
+      const date = new Date(`${value}T12:00:00`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }),
+  )
   .nullable();
 
 export const caseSchema = z.object({
@@ -16,7 +31,8 @@ export const caseSchema = z.object({
     message: "Selecione um status valido.",
   }),
   clientId: z.string().min(1, "Selecione um cliente."),
-  description: optionalText,
+  nextDeadline: optionalDate,
+  notes: optionalText,
 });
 
 export const caseSearchSchema = z.object({

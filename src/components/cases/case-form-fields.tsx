@@ -18,6 +18,7 @@ type CaseFormFieldsProps = {
     court: string | null;
     status: CaseStatus;
     clientId: string;
+    nextDeadlineAt: Date | null;
     description: string | null;
   };
   errors?: Record<string, string[] | undefined>;
@@ -38,7 +39,11 @@ export function CaseFormFields({
   const courtId = `${idPrefix}-court`;
   const statusId = `${idPrefix}-status`;
   const clientId = `${idPrefix}-client`;
-  const descriptionId = `${idPrefix}-description`;
+  const nextDeadlineId = `${idPrefix}-next-deadline`;
+  const notesId = `${idPrefix}-notes`;
+  const nextDeadlineValue = defaultValues?.nextDeadlineAt
+    ? defaultValues.nextDeadlineAt.toISOString().slice(0, 10)
+    : "";
 
   return (
     <div className="grid gap-4">
@@ -113,39 +118,53 @@ export function CaseFormFields({
           ) : null}
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor={clientId}>Cliente</Label>
-        <select
-          id={clientId}
-          name="clientId"
-          defaultValue={defaultValues?.clientId ?? ""}
-          className={cn(selectClassName, !clients.length && "text-muted-foreground")}
-          required
-          disabled={!clients.length}
-        >
-          <option value="" disabled>
-            {clients.length ? "Selecione um cliente" : "Cadastre um cliente primeiro"}
-          </option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor={clientId}>Cliente</Label>
+          <select
+            id={clientId}
+            name="clientId"
+            defaultValue={defaultValues?.clientId ?? ""}
+            className={cn(selectClassName, !clients.length && "text-muted-foreground")}
+            required
+            disabled={!clients.length}
+          >
+            <option value="" disabled>
+              {clients.length ? "Selecione um cliente" : "Cadastre um cliente primeiro"}
             </option>
-          ))}
-        </select>
-        {errors?.clientId ? (
-          <p className="text-sm text-destructive">{errors.clientId[0]}</p>
-        ) : null}
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+          {errors?.clientId ? (
+            <p className="text-sm text-destructive">{errors.clientId[0]}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={nextDeadlineId}>Proximo prazo</Label>
+          <Input
+            id={nextDeadlineId}
+            name="nextDeadline"
+            type="date"
+            defaultValue={nextDeadlineValue}
+          />
+          {errors?.nextDeadline ? (
+            <p className="text-sm text-destructive">{errors.nextDeadline[0]}</p>
+          ) : null}
+        </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={descriptionId}>Descricao/observacoes</Label>
+        <Label htmlFor={notesId}>Observacoes</Label>
         <Textarea
-          id={descriptionId}
-          name="description"
+          id={notesId}
+          name="notes"
           defaultValue={defaultValues?.description ?? ""}
           placeholder="Resumo, estrategia ou observacoes relevantes"
         />
-        {errors?.description ? (
-          <p className="text-sm text-destructive">{errors.description[0]}</p>
+        {errors?.notes ? (
+          <p className="text-sm text-destructive">{errors.notes[0]}</p>
         ) : null}
       </div>
     </div>
