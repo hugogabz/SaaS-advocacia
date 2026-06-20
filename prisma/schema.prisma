@@ -96,8 +96,14 @@ model Client {
   officeId  String
   name      String
   email     String?
+  birthDate DateTime?
+  address   String?
   phone     String?
   document  String?
+  cpf       String?
+  benefitType String?
+  benefitStatus String?
+  govPassword String?
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,6 +120,7 @@ model Case {
   clientId       String
   title          String
   number         String?
+  type           String?
   court          String?
   status         CaseStatus @default(ACTIVE)
   description    String?
