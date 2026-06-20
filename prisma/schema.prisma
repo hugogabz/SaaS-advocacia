@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -42,6 +41,20 @@ enum DocumentType {
   OTHER
 }
 
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
 model Office {
   id        String   @id @default(cuid())
   name      String
@@ -55,6 +68,7 @@ model Office {
   cases     Case[]
   tasks     Task[]
   documents Document[]
+  subscription Subscription?
 }
 
 model User {
@@ -159,4 +173,18 @@ model Document {
 
   @@index([officeId])
   @@index([caseId])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  officeId           String             @unique
+  plan               SubscriptionPlan   @default(FREE)
+  status             SubscriptionStatus @default(TRIALING)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  office             Office             @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
