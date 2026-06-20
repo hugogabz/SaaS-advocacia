@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import {
   Card,
@@ -19,7 +20,9 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <LoginForm />
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
           <p className="text-center text-sm text-muted-foreground">
             Ainda nao tem escritorio?{" "}
             <Link className="font-medium text-primary" href="/cadastro-escritorio">
