@@ -1,16 +1,44 @@
 "use client";
 
-import type { Client } from "@prisma/client";
-import { Calendar, Edit, KeyRound, MapPin, Phone, Search, UserRound } from "lucide-react";
+import type { CaseStatus, Client, TaskStatus } from "@prisma/client";
+import Link from "next/link";
+import {
+  BriefcaseBusiness,
+  Calendar,
+  CalendarClock,
+  Edit,
+  KeyRound,
+  MapPin,
+  Phone,
+  Search,
+  UserRound,
+} from "lucide-react";
+import { getCaseStatusLabel } from "@/components/cases/case-status";
 import { CopySenhaGovButton } from "@/components/clients/copy-senha-gov-button";
 import { DeleteClientButton } from "@/components/clients/delete-client-button";
+import { getTaskStatusLabel } from "@/components/tasks/task-options";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+type ClientWithRelations = Client & {
+  cases: Array<{
+    id: string;
+    title: string;
+    status: CaseStatus;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: TaskStatus;
+    dueAt: Date | null;
+  }>;
+};
+
 type ClientsListProps = {
-  clients: Client[];
+  clients: ClientWithRelations[];
   query: string;
-  onEdit: (client: Client) => void;
+  onEdit: (client: ClientWithRelations) => void;
 };
 
 function formatDate(date: Date | null) {
@@ -82,6 +110,9 @@ export function ClientsList({ clients, query, onEdit }: ClientsListProps) {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/dashboard/clientes/${client.id}`}>Detalhes</Link>
+              </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => onEdit(client)}>
                 <Edit className="h-4 w-4" aria-hidden="true" />
                 Editar
@@ -112,6 +143,57 @@ export function ClientsList({ clients, query, onEdit }: ClientsListProps) {
                 {client.notes}
               </p>
             ) : null}
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <BriefcaseBusiness className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Processos vinculados
+                </div>
+                <div className="space-y-2">
+                  {client.cases.length ? (
+                    client.cases.map((legalCase) => (
+                      <Link
+                        key={legalCase.id}
+                        href={`/dashboard/processos/${legalCase.id}`}
+                        className="flex items-center justify-between gap-3 text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        <span className="truncate">{legalCase.title}</span>
+                        <Badge variant="outline">
+                          {getCaseStatusLabel(legalCase.status)}
+                        </Badge>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum processo vinculado.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <CalendarClock className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Tarefas vinculadas
+                </div>
+                <div className="space-y-2">
+                  {client.tasks.length ? (
+                    client.tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between gap-3 text-sm text-muted-foreground"
+                      >
+                        <span className="truncate">{task.title}</span>
+                        <Badge variant="outline">{getTaskStatusLabel(task.status)}</Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma tarefa vinculada.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
         );

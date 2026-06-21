@@ -56,7 +56,14 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
       include: {
         client: {
           select: {
+            id: true,
             name: true,
+          },
+        },
+        _count: {
+          select: {
+            tasks: true,
+            documents: true,
           },
         },
       },

@@ -1,28 +1,37 @@
-import type { TaskPriority, TaskStatus } from "@prisma/client";
-import { AlertTriangle, BriefcaseBusiness, CalendarClock, Search, UserRound } from "lucide-react";
-import { EditTaskForm } from "@/components/tasks/edit-task-form";
+"use client";
+
+import type { Task, TaskPriority, TaskStatus } from "@prisma/client";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  BriefcaseBusiness,
+  CalendarClock,
+  Edit,
+  Search,
+  UserRound,
+} from "lucide-react";
 import {
   getTaskPriorityLabel,
   getTaskStatusLabel,
 } from "@/components/tasks/task-options";
 import { TaskActions } from "@/components/tasks/task-actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isDueSoon, isOverdue } from "@/lib/deadlines";
 import { cn } from "@/lib/utils";
 
-type TaskItem = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  priority: TaskPriority;
-  dueAt: Date | null;
-  caseId: string | null;
-  assigneeId: string | null;
+type TaskItem = Task & {
+  client: {
+    id: string;
+    name: string;
+  } | null;
   case: {
+    id: string;
     title: string;
     number: string | null;
     client: {
+      id: string;
       name: string;
     };
   } | null;
@@ -34,8 +43,8 @@ type TaskItem = {
 
 type TasksListProps = {
   tasks: TaskItem[];
-  cases: React.ComponentProps<typeof EditTaskForm>["cases"];
-  users: React.ComponentProps<typeof EditTaskForm>["users"];
+  query: string;
+  onEdit: (task: TaskItem) => void;
 };
 
 function formatDate(date: Date) {
@@ -62,7 +71,133 @@ function getDueLabel(task: TaskItem) {
   return `Prazo: ${formatDate(task.dueAt)}`;
 }
 
-export function TasksList({ tasks, cases, users }: TasksListProps) {
+function getPriorityVariant(priority: TaskPriority) {
+  if (priority === "URGENT") {
+    return "destructive";
+  }
+
+  if (priority === "HIGH") {
+    return "default";
+  }
+
+  return "secondary";
+}
+
+function getStatusVariant(status: TaskStatus) {
+  if (status === "DONE") {
+    return "default";
+  }
+
+  if (status === "CANCELED") {
+    return "outline";
+  }
+
+  return "secondary";
+}
+
+function TaskCard({
+  task,
+  onEdit,
+}: {
+  task: TaskItem;
+  onEdit: (task: TaskItem) => void;
+}) {
+  const overdue = isOverdue(task.dueAt, task.status);
+  const dueSoon = isDueSoon(task.dueAt, task.status);
+  const dueLabel = getDueLabel(task);
+  const linkedClient = task.client ?? task.case?.client ?? null;
+
+  return (
+    <Card
+      className={cn(
+        overdue && "border-destructive/70",
+        !overdue && dueSoon && "border-primary/50",
+      )}
+    >
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CalendarClock
+              className={cn("h-5 w-5 text-primary", overdue && "text-destructive")}
+              aria-hidden="true"
+            />
+            <span className="truncate">{task.title}</span>
+          </CardTitle>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm text-muted-foreground">
+            <Badge variant={getStatusVariant(task.status)}>
+              {getTaskStatusLabel(task.status)}
+            </Badge>
+            <Badge variant={getPriorityVariant(task.priority)}>
+              {getTaskPriorityLabel(task.priority)}
+            </Badge>
+            {task.type ? <Badge variant="outline">{task.type}</Badge> : null}
+            {linkedClient ? (
+              <Link
+                href={`/dashboard/clientes/${linkedClient.id}`}
+                className="inline-flex items-center gap-1.5 hover:text-foreground"
+              >
+                <UserRound className="h-4 w-4" aria-hidden="true" />
+                {linkedClient.name}
+              </Link>
+            ) : null}
+            {task.case ? (
+              <Link
+                href={`/dashboard/processos/${task.case.id}`}
+                className="inline-flex items-center gap-1.5 hover:text-foreground"
+              >
+                <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+                {task.case.title}
+              </Link>
+            ) : null}
+            {task.assignee ? (
+              <span className="inline-flex items-center gap-1.5">
+                <UserRound className="h-4 w-4" aria-hidden="true" />
+                {task.assignee.name || task.assignee.email}
+              </span>
+            ) : null}
+            {dueLabel ? (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5",
+                  overdue && "font-medium text-destructive",
+                  !overdue && dueSoon && "font-medium text-primary",
+                )}
+              >
+                {overdue ? (
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                ) : null}
+                {dueLabel}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => onEdit(task)}>
+            <Edit className="h-4 w-4" aria-hidden="true" />
+            Editar
+          </Button>
+          <TaskActions taskId={task.id} isDone={task.status === "DONE"} />
+        </div>
+      </CardHeader>
+      {task.description ? (
+        <CardContent>
+          <p className="rounded-md border bg-secondary/40 p-3 text-sm leading-6 text-muted-foreground">
+            {task.description}
+          </p>
+        </CardContent>
+      ) : null}
+    </Card>
+  );
+}
+
+const taskGroups: Array<{ title: string; statuses: TaskStatus[] }> = [
+  { title: "Pendentes", statuses: ["TODO"] },
+  { title: "Em andamento", statuses: ["IN_PROGRESS"] },
+  { title: "Concluidas", statuses: ["DONE"] },
+  { title: "Canceladas", statuses: ["CANCELED"] },
+];
+
+export function TasksList({ tasks, query, onEdit }: TasksListProps) {
   if (tasks.length === 0) {
     return (
       <Card>
@@ -71,7 +206,9 @@ export function TasksList({ tasks, cases, users }: TasksListProps) {
           <div>
             <p className="font-medium">Nenhuma tarefa cadastrada</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Crie tarefas vinculadas aos processos para acompanhar prazos do escritorio.
+              {query
+                ? "Tente outro filtro ou busca."
+                : "Crie tarefas livres ou vinculadas a clientes e processos."}
             </p>
           </div>
         </CardContent>
@@ -80,81 +217,26 @@ export function TasksList({ tasks, cases, users }: TasksListProps) {
   }
 
   return (
-    <div className="grid gap-4">
-      {tasks.map((task) => {
-        const overdue = isOverdue(task.dueAt, task.status);
-        const dueSoon = isDueSoon(task.dueAt, task.status);
-        const dueLabel = getDueLabel(task);
+    <div className="space-y-6">
+      {taskGroups.map((group) => {
+        const groupTasks = tasks.filter((task) => group.statuses.includes(task.status));
+
+        if (groupTasks.length === 0) {
+          return null;
+        }
 
         return (
-          <Card
-            key={task.id}
-            className={cn(
-              overdue && "border-destructive/70",
-              !overdue && dueSoon && "border-primary/50",
-            )}
-          >
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <CalendarClock
-                    className={cn(
-                      "h-5 w-5 text-primary",
-                      overdue && "text-destructive",
-                    )}
-                    aria-hidden="true"
-                  />
-                  <span className="truncate">{task.title}</span>
-                </CardTitle>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                  {task.case ? (
-                    <span className="flex items-center gap-1.5">
-                      <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                      {task.case.title} - {task.case.client.name}
-                    </span>
-                  ) : null}
-                  {task.assignee ? (
-                    <span className="flex items-center gap-1.5">
-                      <UserRound className="h-4 w-4" aria-hidden="true" />
-                      {task.assignee.name || task.assignee.email}
-                    </span>
-                  ) : null}
-                  <span>Status: {getTaskStatusLabel(task.status)}</span>
-                  <span>Prioridade: {getTaskPriorityLabel(task.priority)}</span>
-                  {dueLabel ? (
-                    <span
-                      className={cn(
-                        "flex items-center gap-1.5",
-                        overdue && "font-medium text-destructive",
-                        !overdue && dueSoon && "font-medium text-primary",
-                      )}
-                    >
-                      {overdue ? (
-                        <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                      ) : null}
-                      {dueLabel}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <TaskActions taskId={task.id} isDone={task.status === "DONE"} />
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {task.description ? (
-                <p className="rounded-md border bg-secondary/40 p-3 text-sm leading-6 text-muted-foreground">
-                  {task.description}
-                </p>
-              ) : null}
-              <details className="group rounded-md border p-4">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors group-open:text-foreground">
-                  Editar tarefa
-                </summary>
-                <div className="mt-4">
-                  <EditTaskForm cases={cases} users={users} task={task} />
-                </div>
-              </details>
-            </CardContent>
-          </Card>
+          <section key={group.title} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold">{group.title}</h3>
+              <Badge variant="outline">{groupTasks.length}</Badge>
+            </div>
+            <div className="grid gap-4">
+              {groupTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onEdit={onEdit} />
+              ))}
+            </div>
+          </section>
         );
       })}
     </div>

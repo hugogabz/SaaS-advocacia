@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 
 type TaskFormFieldsProps = {
   idPrefix: string;
+  clients: Array<{
+    id: string;
+    name: string;
+  }>;
   cases: Array<{
     id: string;
     title: string;
@@ -22,10 +26,12 @@ type TaskFormFieldsProps = {
   }>;
   defaultValues?: {
     title: string;
+    type: string | null;
     description: string | null;
     status: TaskStatus;
     priority: TaskPriority;
     dueAt: Date | null;
+    clientId: string | null;
     caseId: string | null;
     assigneeId: string | null;
   };
@@ -45,16 +51,19 @@ function formatDateInput(date: Date | null | undefined) {
 
 export function TaskFormFields({
   idPrefix,
+  clients,
   cases,
   users,
   defaultValues,
   errors,
 }: TaskFormFieldsProps) {
   const titleId = `${idPrefix}-title`;
+  const typeId = `${idPrefix}-type`;
   const descriptionId = `${idPrefix}-description`;
   const statusId = `${idPrefix}-status`;
   const priorityId = `${idPrefix}-priority`;
   const dueDateId = `${idPrefix}-due-date`;
+  const clientId = `${idPrefix}-client`;
   const caseId = `${idPrefix}-case`;
   const assignedToId = `${idPrefix}-assigned-to`;
 
@@ -76,17 +85,51 @@ export function TaskFormFields({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
+          <Label htmlFor={typeId}>Tipo</Label>
+          <Input
+            id={typeId}
+            name="type"
+            defaultValue={defaultValues?.type ?? ""}
+            placeholder="Ex.: Prazo, documento, atendimento"
+          />
+          {errors?.type ? (
+            <p className="text-sm text-destructive">{errors.type[0]}</p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={clientId}>Cliente</Label>
+          <select
+            id={clientId}
+            name="clientId"
+            defaultValue={defaultValues?.clientId ?? ""}
+            className={selectClassName}
+          >
+            <option value="">Sem cliente vinculado</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+          {errors?.clientId ? (
+            <p className="text-sm text-destructive">{errors.clientId[0]}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
           <Label htmlFor={caseId}>Processo</Label>
           <select
             id={caseId}
             name="caseId"
             defaultValue={defaultValues?.caseId ?? ""}
             className={cn(selectClassName, !cases.length && "text-muted-foreground")}
-            required
             disabled={!cases.length}
           >
-            <option value="" disabled>
-              {cases.length ? "Selecione um processo" : "Cadastre um processo primeiro"}
+            <option value="">
+              {cases.length ? "Sem processo vinculado" : "Cadastre um processo depois"}
             </option>
             {cases.map((legalCase) => (
               <option key={legalCase.id} value={legalCase.id}>

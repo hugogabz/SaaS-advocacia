@@ -15,7 +15,12 @@ import {
 
 type CaseWithClient = Case & {
   client: {
+    id: string;
     name: string;
+  };
+  _count?: {
+    tasks: number;
+    documents: number;
   };
 };
 

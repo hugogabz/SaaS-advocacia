@@ -42,6 +42,36 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      cases: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 3,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+        },
+      },
+      tasks: {
+        orderBy: [
+          {
+            dueAt: "asc",
+          },
+          {
+            createdAt: "desc",
+          },
+        ],
+        take: 3,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          dueAt: true,
+        },
+      },
+    },
   });
 
   return (

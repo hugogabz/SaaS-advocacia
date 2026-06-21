@@ -1,6 +1,7 @@
 "use client";
 
 import type { Case } from "@prisma/client";
+import Link from "next/link";
 import {
   BriefcaseBusiness,
   Building2,
@@ -17,7 +18,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type LegalCase = Case & {
   client: {
+    id: string;
     name: string;
+  };
+  _count?: {
+    tasks: number;
+    documents: number;
   };
 };
 
@@ -104,6 +110,9 @@ export function CasesList({ cases, query, onEdit }: CasesListProps) {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/dashboard/processos/${legalCase.id}`}>Detalhes</Link>
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -117,6 +126,10 @@ export function CasesList({ cases, query, onEdit }: CasesListProps) {
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
+              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                <span>{legalCase._count?.tasks ?? 0} tarefas vinculadas</span>
+                <span>{legalCase._count?.documents ?? 0} documentos</span>
+              </div>
               {legalCase.description ? (
                 <p className="rounded-md border bg-secondary/40 p-3 text-sm leading-6 text-muted-foreground">
                   {legalCase.description}

@@ -12,10 +12,17 @@ export type TaskActionState = {
   errors?: Record<string, string[] | undefined>;
 };
 
-const defaultError = {
-  ok: false,
-  message: "Nao foi possivel salvar a tarefa.",
-} satisfies TaskActionState;
+function taskActionError(action: string, error: unknown): TaskActionState {
+  console.error(`[tasks:${action}]`, error);
+
+  return {
+    ok: false,
+    message:
+      error instanceof Error
+        ? `Nao foi possivel salvar a tarefa: ${error.message}`
+        : "Nao foi possivel salvar a tarefa. Veja o console do servidor.",
+  };
+}
 
 async function getCurrentUserContext() {
   const session = await auth();
@@ -33,19 +40,80 @@ async function getCurrentUserContext() {
 function parseTaskForm(formData: FormData) {
   return taskSchema.safeParse({
     title: formData.get("title"),
+    type: formData.get("type"),
     description: formData.get("description"),
     status: formData.get("status"),
     priority: formData.get("priority"),
     dueDate: formData.get("dueDate"),
+    clientId: formData.get("clientId"),
     caseId: formData.get("caseId"),
     assignedToId: formData.get("assignedToId"),
   });
 }
 
-async function caseBelongsToOffice(caseId: string, officeId: string) {
+function toTaskData(data: ReturnType<typeof taskSchema.parse>) {
+  return {
+    clientId: data.clientId,
+    caseId: data.caseId,
+    title: data.title,
+    type: data.type,
+    description: data.description,
+    status: data.status,
+    priority: data.priority,
+    dueAt: data.dueDate,
+    assigneeId: data.assignedToId,
+  };
+}
+
+async function clientBelongsToOffice(clientId: string | null, officeId: string) {
+  if (!clientId) {
+    return true;
+  }
+
+  const client = await getPrisma().client.findFirst({
+    where: {
+      id: clientId,
+      officeId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(client);
+}
+
+async function caseBelongsToOffice(caseId: string | null, officeId: string) {
+  if (!caseId) {
+    return true;
+  }
+
   const legalCase = await getPrisma().case.findFirst({
     where: {
       id: caseId,
+      officeId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(legalCase);
+}
+
+async function caseBelongsToClient(
+  caseId: string | null,
+  clientId: string | null,
+  officeId: string,
+) {
+  if (!caseId || !clientId) {
+    return true;
+  }
+
+  const legalCase = await getPrisma().case.findFirst({
+    where: {
+      id: caseId,
+      clientId,
       officeId,
     },
     select: {
@@ -89,10 +157,24 @@ export async function createTaskAction(
     };
   }
 
+  if (!(await clientBelongsToOffice(parsed.data.clientId, officeId))) {
+    return {
+      ok: false,
+      message: "Cliente nao encontrado para este escritorio.",
+    };
+  }
+
   if (!(await caseBelongsToOffice(parsed.data.caseId, officeId))) {
     return {
       ok: false,
       message: "Processo nao encontrado para este escritorio.",
+    };
+  }
+
+  if (!(await caseBelongsToClient(parsed.data.caseId, parsed.data.clientId, officeId))) {
+    return {
+      ok: false,
+      message: "O processo selecionado nao pertence ao cliente informado.",
     };
   }
 
@@ -107,26 +189,34 @@ export async function createTaskAction(
     await getPrisma().task.create({
       data: {
         officeId,
-        caseId: parsed.data.caseId,
-        title: parsed.data.title,
-        description: parsed.data.description,
-        status: parsed.data.status,
-        priority: parsed.data.priority,
-        dueAt: parsed.data.dueDate,
-        assigneeId: parsed.data.assignedToId,
+        ...toTaskData(parsed.data),
         createdById: userId,
       },
     });
 
     revalidatePath("/dashboard/tarefas");
+    revalidatePath("/dashboard");
 
     return {
       ok: true,
       message: "Tarefa criada com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return taskActionError("create", error);
   }
+}
+
+export async function saveTaskAction(
+  _prevState: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  const taskId = formData.get("taskId")?.toString();
+
+  if (taskId) {
+    return updateTaskAction(taskId, _prevState, formData);
+  }
+
+  return createTaskAction(_prevState, formData);
 }
 
 export async function updateTaskAction(
@@ -145,10 +235,24 @@ export async function updateTaskAction(
     };
   }
 
+  if (!(await clientBelongsToOffice(parsed.data.clientId, officeId))) {
+    return {
+      ok: false,
+      message: "Cliente nao encontrado para este escritorio.",
+    };
+  }
+
   if (!(await caseBelongsToOffice(parsed.data.caseId, officeId))) {
     return {
       ok: false,
       message: "Processo nao encontrado para este escritorio.",
+    };
+  }
+
+  if (!(await caseBelongsToClient(parsed.data.caseId, parsed.data.clientId, officeId))) {
+    return {
+      ok: false,
+      message: "O processo selecionado nao pertence ao cliente informado.",
     };
   }
 
@@ -165,15 +269,7 @@ export async function updateTaskAction(
         id: taskId,
         officeId,
       },
-      data: {
-        caseId: parsed.data.caseId,
-        title: parsed.data.title,
-        description: parsed.data.description,
-        status: parsed.data.status,
-        priority: parsed.data.priority,
-        dueAt: parsed.data.dueDate,
-        assigneeId: parsed.data.assignedToId,
-      },
+      data: toTaskData(parsed.data),
     });
 
     if (result.count === 0) {
@@ -184,13 +280,14 @@ export async function updateTaskAction(
     }
 
     revalidatePath("/dashboard/tarefas");
+    revalidatePath("/dashboard");
 
     return {
       ok: true,
       message: "Tarefa atualizada com sucesso.",
     };
-  } catch {
-    return defaultError;
+  } catch (error) {
+    return taskActionError("update", error);
   }
 }
 
@@ -208,6 +305,7 @@ export async function completeTaskAction(taskId: string) {
   });
 
   revalidatePath("/dashboard/tarefas");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteTaskAction(taskId: string) {
@@ -221,4 +319,5 @@ export async function deleteTaskAction(taskId: string) {
   });
 
   revalidatePath("/dashboard/tarefas");
+  revalidatePath("/dashboard");
 }

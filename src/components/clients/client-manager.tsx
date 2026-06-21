@@ -1,6 +1,6 @@
 "use client";
 
-import type { Client } from "@prisma/client";
+import type { CaseStatus, Client, TaskStatus } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { ClientsList } from "@/components/clients/clients-list";
 import { CreateClientForm } from "@/components/clients/create-client-form";
@@ -14,7 +14,21 @@ import {
 import { useState } from "react";
 
 type ClientManagerProps = {
-  clients: Client[];
+  clients: Array<
+    Client & {
+      cases: Array<{
+        id: string;
+        title: string;
+        status: CaseStatus;
+      }>;
+      tasks: Array<{
+        id: string;
+        title: string;
+        status: TaskStatus;
+        dueAt: Date | null;
+      }>;
+    }
+  >;
   query: string;
 };
 
